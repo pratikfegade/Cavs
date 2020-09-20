@@ -10,8 +10,10 @@ __inline__ __device__
 T warpReduceMax(T& val, int &idx) {
   const int warpSize = 32;
   for (int offset = warpSize >> 1; offset > 0; offset >>= 1) {
-    T r_value = __shfl_down(val, offset);
-    int r_idx = __shfl_down(idx, offset);
+    // T r_value = __shfl_down(val, offset);
+    // int r_idx = __shfl_down(idx, offset);
+    T r_value = __shfl_down_sync(0xffffffff, val, offset);
+    int r_idx = __shfl_down_sync(0xffffffff, idx, offset);
     if (r_value > val) {
       val = r_value;
       idx = r_idx;

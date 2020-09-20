@@ -10,7 +10,7 @@ namespace backend {
 template <typename T>
 __device__ inline void Comparator(T& valA, T& valB, bool direction) {
   if ((valA > valB) == direction) {
-    T tmp; 
+    T tmp;
     tmp = valA;
     valA = valB;
     valB = tmp;
@@ -49,14 +49,14 @@ __global__ void BatchedOddEvenSortInCache(T* out, const T* in,
         }
         stride >>= 1;
       }
-      __syncthreads(); 
+      __syncthreads();
       for (; stride > 0; stride >>= 1) {
         unsigned pos = 2*threadIdx.x - (threadIdx.x&(stride-1));
         unsigned int global_pos = pos + base_idx;
         if (offset >= stride && global_pos < N) {
           Comparator(s_val[pos-stride], s_val[pos], direction);
         }
-        __syncthreads(); 
+        __syncthreads();
       }
     }
     if (threadIdx.x + base_idx < N) {
@@ -140,7 +140,7 @@ void BatchedOddEvenSort(T* out, const T* in,
     if (threadsPerBlock == MAX_THREADS_IN_BLOCK)
       break;
   }
-  if (threadsPerBlock > N) 
+  if (threadsPerBlock > N)
     threadsPerBlock = (threadsPerBlock >> 1) > 0 ? (threadsPerBlock >> 1) : 1;
   unsigned int blocksPerGrid = Batch;
   /*LOG(INFO) << blocksPerGrid << "\t" << threadsPerBlock;*/
@@ -174,13 +174,14 @@ __global__ void BatchedScanInCache(T* out, const T* in, unsigned int N) {
       T val = in[global_id];
       #pragma unroll
       for (int i = 1; i < warpSize; i <<= 1) {
-        T pre_sum = __shfl_up(val, i, warpSize);
+        // T pre_sum = __shfl_up(val, i, warpSize);
+        T pre_sum = __shfl_up_sync(0xffffffff, val, i, warpSize);
         if (lane_id >= i) val += pre_sum;
       }
       s_val[threadIdx.x] = val;
     }
     __syncthreads();
-      
+
     for (int i = 1; i <= (blockDim.x >> 5); i <<= 1) {
       T pre_sum = 0;
       if (warp_id >= i) {
@@ -210,7 +211,7 @@ __global__ void BatchedScanStride(T* out, const T* in, unsigned int N) {
     int block_id = threadIdx.x + round*blockDim.x;
     int global_id = block_id + blockIdx.x*N;
     if (threadIdx.x == 0) {
-      pre_scan = in[global_id-1]; 
+      pre_scan = in[global_id-1];
     }
     __syncthreads();
     if (block_id < N) {

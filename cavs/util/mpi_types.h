@@ -11,7 +11,7 @@ struct DataTypeToMPIType {
 #define MATCH_TYPE_TO_MPI_TYPE(TYPE, ENUM)  \
   template <>                               \
   struct DataTypeToMPIType<TYPE> {          \
-    static const MPI_Datatype value = ENUM; \
+    static MPI_Datatype value; \
   }
 
 MATCH_TYPE_TO_MPI_TYPE(float,  MPI_FLOAT);

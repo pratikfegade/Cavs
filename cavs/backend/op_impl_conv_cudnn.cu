@@ -15,7 +15,7 @@ using ::midend::Tensor;
 class ConvOpCudnnBase : public OpImpl {
  public:
   explicit ConvOpCudnnBase(const OpDef& def);
-  ~ConvOpCudnnBase(); 
+  ~ConvOpCudnnBase();
 
  protected:
   cudnnTensorDescriptor_t x_desc_, y_desc_;
@@ -49,7 +49,7 @@ ConvOpCudnnBase::~ConvOpCudnnBase() {
 template <typename T>
 class ConvOpCudnn: public ConvOpCudnnBase {
  public:
-  explicit ConvOpCudnn(const OpDef& def) 
+  explicit ConvOpCudnn(const OpDef& def)
       : ConvOpCudnnBase(def),
         workspace(NULL), workspaceSizeInBytes(0) {}
   ~ConvOpCudnn();
@@ -61,9 +61,9 @@ class ConvOpCudnn: public ConvOpCudnnBase {
 };
 
 template <typename T>
-ConvOpCudnn<T>::~ConvOpCudnn() { 
+ConvOpCudnn<T>::~ConvOpCudnn() {
   if (workspace)
-    alloc_->Deallocate<char>((char*)workspace); 
+    alloc_->Deallocate<char>((char*)workspace);
 }
 
 template <typename T>
@@ -99,7 +99,7 @@ void ConvOpCudnn<T>::Compute(OpContext* context) {
                   CUDNN_TENSOR_NCHW, DataTypeToCudnnType<T>::value,
                   YN, YC, YH, YW));
   checkCUDNNError(cudnnSetFilter4dDescriptor(filter_desc_,
-                  DataTypeToCudnnType<T>::value, CUDNN_TENSOR_NCHW, 
+                  DataTypeToCudnnType<T>::value, CUDNN_TENSOR_NCHW,
                   FYC, FXC, FH, FW));
   checkCUDNNError(cudnnSetConvolution2dDescriptor(conv_desc_,
                   0, 0, 1, 1, 1, 1, CUDNN_CROSS_CORRELATION,
@@ -108,9 +108,9 @@ void ConvOpCudnn<T>::Compute(OpContext* context) {
                   /*conv_desc_, x_desc_, filter_desc_, */
                   /*4, YDim));*/
 
-  checkCUDNNError(cudnnGetConvolutionForwardAlgorithm(CudaCommon::cudnnHandle(),
-                  x_desc_, filter_desc_, conv_desc_, y_desc_,
-                  CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &fwd_algo_));
+  // checkCUDNNError(cudnnGetConvolutionForwardAlgorithm(CudaCommon::cudnnHandle(),
+  //                 x_desc_, filter_desc_, conv_desc_, y_desc_,
+  //                 CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &fwd_algo_));
   checkCUDNNError(cudnnGetConvolutionForwardWorkspaceSize(CudaCommon::cudnnHandle(),
                   x_desc_, filter_desc_, conv_desc_, y_desc_,
                   fwd_algo_, &workspaceSizeInBytes));
@@ -120,14 +120,14 @@ void ConvOpCudnn<T>::Compute(OpContext* context) {
   workspace = alloc_->Allocate<char>(workspaceSizeInBytes);
 
   float alpha = 1.f, beta = 0.f;
-  checkCUDNNError(cudnnConvolutionForward(CudaCommon::cudnnHandle(), 
+  checkCUDNNError(cudnnConvolutionForward(CudaCommon::cudnnHandle(),
                   &alpha, x_desc_,
                   x.data<T>(), filter_desc_, filter.data<T>(),
                   conv_desc_, fwd_algo_, workspace, workspaceSizeInBytes, &beta,
                   y_desc_, y->mutable_data<T>()));
   checkCUDNNError(cudnnAddTensor(CudaCommon::cudnnHandle(),
                   &alpha, bias_desc_,
-                  bias.data<T>(), &alpha, 
+                  bias.data<T>(), &alpha,
                   y_desc_, y->mutable_data<T>()));
 
   /*x.DebugNumerical<T>();*/
@@ -139,11 +139,11 @@ void ConvOpCudnn<T>::Compute(OpContext* context) {
 template <typename T>
 class ConvOpCudnnGrad: public ConvOpCudnnBase {
  public:
-  explicit ConvOpCudnnGrad(const OpDef& def) 
-      : ConvOpCudnnBase(def), 
+  explicit ConvOpCudnnGrad(const OpDef& def)
+      : ConvOpCudnnBase(def),
       filter_workspace(NULL), data_workspace(NULL),
       filter_workspaceSizeInBytes_(0), data_workspaceSizeInBytes_(0) {}
-  ~ConvOpCudnnGrad(); 
+  ~ConvOpCudnnGrad();
   void Compute(OpContext* context) override;
 
  private:
@@ -154,9 +154,9 @@ class ConvOpCudnnGrad: public ConvOpCudnnBase {
 };
 
 template <typename T>
-ConvOpCudnnGrad<T>::~ConvOpCudnnGrad() { 
-  alloc_->Deallocate<char>((char*)filter_workspace); 
-  alloc_->Deallocate<char>((char*)data_workspace); 
+ConvOpCudnnGrad<T>::~ConvOpCudnnGrad() {
+  alloc_->Deallocate<char>((char*)filter_workspace);
+  alloc_->Deallocate<char>((char*)data_workspace);
 }
 
 template <typename T>
@@ -195,7 +195,7 @@ void ConvOpCudnnGrad<T>::Compute(OpContext* context) {
                   CUDNN_TENSOR_NCHW, DataTypeToCudnnType<T>::value,
                   YN, YC, YH, YW));
   checkCUDNNError(cudnnSetFilter4dDescriptor(filter_desc_,
-                  DataTypeToCudnnType<T>::value, CUDNN_TENSOR_NCHW, 
+                  DataTypeToCudnnType<T>::value, CUDNN_TENSOR_NCHW,
                   FYC, FXC, FH, FW));
   checkCUDNNError(cudnnSetConvolution2dDescriptor(conv_desc_,
                   0, 0, 1, 1, 1, 1, CUDNN_CROSS_CORRELATION,
@@ -203,15 +203,15 @@ void ConvOpCudnnGrad<T>::Compute(OpContext* context) {
   {
     size_t filter_worksize = 0;
     size_t data_worksize = 0;
-    checkCUDNNError(cudnnGetConvolutionBackwardFilterAlgorithm(CudaCommon::cudnnHandle(),
-                    x_desc_, y_desc_, conv_desc_, filter_desc_, 
-                    CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST, 0, &bwd_f_algo_));
+    // checkCUDNNError(cudnnGetConvolutionBackwardFilterAlgorithm(CudaCommon::cudnnHandle(),
+    //                 x_desc_, y_desc_, conv_desc_, filter_desc_,
+    //                 CUDNN_CONVOLUTION_BWD_FILTER_PREFER_FASTEST, 0, &bwd_f_algo_));
     checkCUDNNError(cudnnGetConvolutionBackwardFilterWorkspaceSize(CudaCommon::cudnnHandle(),
                     x_desc_, y_desc_, conv_desc_, filter_desc_,
                     bwd_f_algo_, &filter_worksize));
-    checkCUDNNError(cudnnGetConvolutionBackwardDataAlgorithm(CudaCommon::cudnnHandle(),
-                    filter_desc_, y_desc_, conv_desc_, x_desc_,
-                    CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST, 0, &bwd_d_algo_));
+    // checkCUDNNError(cudnnGetConvolutionBackwardDataAlgorithm(CudaCommon::cudnnHandle(),
+    //                 filter_desc_, y_desc_, conv_desc_, x_desc_,
+    //                 CUDNN_CONVOLUTION_BWD_DATA_PREFER_FASTEST, 0, &bwd_d_algo_));
     checkCUDNNError(cudnnGetConvolutionBackwardDataWorkspaceSize(CudaCommon::cudnnHandle(),
                     filter_desc_, y_desc_, conv_desc_, x_desc_,
                     bwd_d_algo_, &data_worksize));
@@ -232,17 +232,17 @@ void ConvOpCudnnGrad<T>::Compute(OpContext* context) {
   }
 
   float alpha = 1.f, beta = 0.f;
-  checkCUDNNError(cudnnConvolutionBackwardFilter(CudaCommon::cudnnHandle(), 
+  checkCUDNNError(cudnnConvolutionBackwardFilter(CudaCommon::cudnnHandle(),
                   &alpha, x_desc_, x.data<T>(),
                   y_desc_, dy.data<T>(),
                   conv_desc_, bwd_f_algo_, filter_workspace, filter_workspaceSizeInBytes_,
                   &beta, filter_desc_, df->mutable_data<T>()));
   checkCUDNNError(cudnnConvolutionBackwardData(CudaCommon::cudnnHandle(),
-                  &alpha, filter_desc_, filter.data<T>(), 
+                  &alpha, filter_desc_, filter.data<T>(),
                   y_desc_, dy.data<T>(),
                   conv_desc_, bwd_d_algo_, data_workspace, data_workspaceSizeInBytes_,
                   &beta, x_desc_, dx->mutable_data<T>()));
-  checkCUDNNError(cudnnConvolutionBackwardBias(CudaCommon::cudnnHandle(), 
+  checkCUDNNError(cudnnConvolutionBackwardBias(CudaCommon::cudnnHandle(),
                   &alpha, y_desc_, dy.data<T>(),
                   &beta, bias_desc_, db->mutable_data<T>()));
 

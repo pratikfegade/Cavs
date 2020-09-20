@@ -24,7 +24,7 @@ template <typename T>
 class RNNOpCudnnBase : public OpImpl {
  public:
   explicit RNNOpCudnnBase(const OpDef& def);
-  ~RNNOpCudnnBase(); 
+  ~RNNOpCudnnBase();
 
   virtual void InitCUDNN(const int seq_length,
       const int batch,
@@ -105,15 +105,15 @@ RNNOpCudnnBase<T>::RNNOpCudnnBase(const OpDef& def) :
   cudnnRNNMode_t mode = CUDNN_LSTM;
   CHECK(hidden_size_ > 0);
   CHECK(num_layers_ > 0);
-  checkCUDNNError(cudnnSetRNNDescriptor(
-        rnn_desc_,
-        hidden_size_,
-        num_layers_,
-        dropout_desc_,
-        CUDNN_LINEAR_INPUT, //hard-coded now
-        CUDNN_UNIDIRECTIONAL, //hard-coded now
-        CUDNN_LSTM, //hard-coded now
-        DataTypeToCudnnType<T>::value));
+  // checkCUDNNError(cudnnSetRNNDescriptor(
+  //       rnn_desc_,
+  //       hidden_size_,
+  //       num_layers_,
+  //       dropout_desc_,
+  //       CUDNN_LINEAR_INPUT, //hard-coded now
+  //       CUDNN_UNIDIRECTIONAL, //hard-coded now
+  //       CUDNN_LSTM, //hard-coded now
+  //       DataTypeToCudnnType<T>::value));
 }
 
 template <typename T>
@@ -126,7 +126,7 @@ RNNOpCudnnBase<T>::~RNNOpCudnnBase() {
   checkCUDNNError(cudnnDestroyTensorDescriptor(cy_desc_));
   checkCUDNNError(cudnnDestroyFilterDescriptor(w_desc_));
   if (dropout_workspace_)
-    alloc_->Deallocate<char>((char*)dropout_workspace_); 
+    alloc_->Deallocate<char>((char*)dropout_workspace_);
   checkCUDNNError(cudnnDestroyDropoutDescriptor(dropout_desc_));
   checkCUDNNError(cudnnDestroyRNNDescriptor(rnn_desc_));
   if (!x_desc_.empty()) {
@@ -138,17 +138,17 @@ RNNOpCudnnBase<T>::~RNNOpCudnnBase() {
       checkCUDNNError(cudnnDestroyTensorDescriptor(des));
   }
   if (rnn_workspace_)
-    alloc_->Deallocate<char>((char*)rnn_workspace_); 
+    alloc_->Deallocate<char>((char*)rnn_workspace_);
   if (rnn_trainningreserve_)
-    alloc_->Deallocate<char>((char*)rnn_trainningreserve_); 
+    alloc_->Deallocate<char>((char*)rnn_trainningreserve_);
   if (rnn_hx_)
-    alloc_->Deallocate<char>((char*)rnn_hx_); 
+    alloc_->Deallocate<char>((char*)rnn_hx_);
   if (rnn_cx_)
-    alloc_->Deallocate<char>((char*)rnn_cx_); 
+    alloc_->Deallocate<char>((char*)rnn_cx_);
   if (rnn_hy_)
-    alloc_->Deallocate<char>((char*)rnn_hy_); 
+    alloc_->Deallocate<char>((char*)rnn_hy_);
   if (rnn_cy_)
-    alloc_->Deallocate<char>((char*)rnn_cy_); 
+    alloc_->Deallocate<char>((char*)rnn_cy_);
 }
 
 template <typename T>
@@ -167,23 +167,23 @@ void RNNOpCudnnBase<T>::InitCUDNN(
     const std::array<int, 3> dim = {batch, input_size, 1};
     const std::array<int, 3> stride = {input_size, 1, 1};
     for (int i = 0; i < seq_length; i++) {
-      checkCUDNNError(cudnnCreateTensorDescriptor(&x_desc_[i]));  
+      checkCUDNNError(cudnnCreateTensorDescriptor(&x_desc_[i]));
       checkCUDNNError(cudnnSetTensorNdDescriptor(
             x_desc_[i], DataTypeToCudnnType<T>::value, 3, dim.data(), stride.data()));
     }
   }
 
   if (y_desc_.empty()) {
-    y_desc_.resize(seq_length); 
+    y_desc_.resize(seq_length);
     const std::array<int, 3> dim = {batch, hidden_size_*num_directions_, 1};
     const std::array<int, 3> stride = {hidden_size_*num_directions_, 1, 1};
     for (int i = 0; i < seq_length; i++) {
-      checkCUDNNError(cudnnCreateTensorDescriptor(&y_desc_[i]));  
+      checkCUDNNError(cudnnCreateTensorDescriptor(&y_desc_[i]));
       checkCUDNNError(cudnnSetTensorNdDescriptor(
             y_desc_[i], DataTypeToCudnnType<T>::value, 3, dim.data(), stride.data()));
     }
   }
-  
+
   {
     //I think there is a problem in the first dimension of dim
     //Should it be num_layers? and the third dimension is hidden*directions?
@@ -202,32 +202,32 @@ void RNNOpCudnnBase<T>::InitCUDNN(
     if (rnn_hx_sizeInBytes_ != internal_size) {
       vector<T> test;
       /*test.resize(internal_size/sizeof(T), 1);*/
-      if (rnn_hx_) 
-        alloc_->Deallocate<char>((char*)rnn_hx_); 
+      if (rnn_hx_)
+        alloc_->Deallocate<char>((char*)rnn_hx_);
       rnn_hx_ = alloc_->Allocate<char>(internal_size);
       /*checkCudaError(cudaMemcpy(rnn_hx_, test.data(), internal_size, cudaMemcpyHostToDevice));*/
-      rnn_hx_sizeInBytes_ = internal_size; 
+      rnn_hx_sizeInBytes_ = internal_size;
     }
     if (rnn_cx_sizeInBytes_ != internal_size) {
       vector<T> test;
       /*test.resize(internal_size/sizeof(T), 1);*/
-      if (rnn_cx_) 
-        alloc_->Deallocate<char>((char*)rnn_cx_); 
+      if (rnn_cx_)
+        alloc_->Deallocate<char>((char*)rnn_cx_);
       rnn_cx_ = alloc_->Allocate<char>(internal_size);
       /*checkCudaError(cudaMemcpy(rnn_cx_, test.data(), internal_size, cudaMemcpyHostToDevice));*/
-      rnn_cx_sizeInBytes_ = internal_size; 
+      rnn_cx_sizeInBytes_ = internal_size;
     }
     if (rnn_hy_sizeInBytes_ != internal_size) {
-      if (rnn_hy_) 
-        alloc_->Deallocate<char>((char*)rnn_hy_); 
+      if (rnn_hy_)
+        alloc_->Deallocate<char>((char*)rnn_hy_);
       rnn_hy_ = alloc_->Allocate<char>(internal_size);
-      rnn_hy_sizeInBytes_ = internal_size; 
+      rnn_hy_sizeInBytes_ = internal_size;
     }
     if (rnn_cy_sizeInBytes_ != internal_size) {
-      if (rnn_cy_) 
-        alloc_->Deallocate<char>((char*)rnn_cy_); 
+      if (rnn_cy_)
+        alloc_->Deallocate<char>((char*)rnn_cy_);
       rnn_cy_ = alloc_->Allocate<char>(internal_size);
-      rnn_cy_sizeInBytes_ = internal_size; 
+      rnn_cy_sizeInBytes_ = internal_size;
     }
   }
 
@@ -258,11 +258,11 @@ void RNNOpCudnnBase<T>::InitCUDNN(
           rnn_desc_,
           seq_length,
           x_desc_.data(),
-          &workspace_size)); 
+          &workspace_size));
     if (workspace_size != rnn_workspace_sizeInBytes_) {
-      rnn_workspace_sizeInBytes_ = workspace_size; 
+      rnn_workspace_sizeInBytes_ = workspace_size;
       if (rnn_workspace_)
-        alloc_->Deallocate<char>((char*)rnn_workspace_); 
+        alloc_->Deallocate<char>((char*)rnn_workspace_);
       rnn_workspace_ = alloc_->Allocate<char>(rnn_workspace_sizeInBytes_);
     }
   }
@@ -340,11 +340,11 @@ void RNNOpCudnn<T>::Compute(OpContext* context) {
           this->rnn_desc_,
           seq_length,
           this->x_desc_.data(),
-          &workspace_size)); 
+          &workspace_size));
     if (workspace_size != this->rnn_trainingreserve_sizeInBytes_) {
-      this->rnn_trainingreserve_sizeInBytes_ = workspace_size; 
+      this->rnn_trainingreserve_sizeInBytes_ = workspace_size;
       if (this->rnn_trainningreserve_)
-        this->alloc_->template Deallocate<char>((char*)(this->rnn_trainningreserve_)); 
+        this->alloc_->template Deallocate<char>((char*)(this->rnn_trainningreserve_));
       this->rnn_trainningreserve_ = (this->alloc_)->template Allocate<char>(this->rnn_trainingreserve_sizeInBytes_);
       context->repo_[Y->name()] = this->rnn_trainningreserve_;
     }
@@ -429,9 +429,9 @@ void RNNOpCudnnGrad<T>::Compute(OpContext* context) {
           this->rnn_desc_,
           seq_length,
           this->x_desc_.data(),
-          &workspace_size)); 
+          &workspace_size));
     if (workspace_size != this->rnn_trainingreserve_sizeInBytes_) {
-      this->rnn_trainingreserve_sizeInBytes_ = workspace_size; 
+      this->rnn_trainingreserve_sizeInBytes_ = workspace_size;
       CHECK(context->repo_.find(Y.name()) != context->repo_.end());
       this->rnn_trainningreserve_ = context->repo_[Y.name()];
       CHECK(this->rnn_trainningreserve_);

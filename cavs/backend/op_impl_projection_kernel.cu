@@ -43,11 +43,11 @@ ProjectionOpKernel<T>::ProjectionOpKernel(const OpDef& def)
 template <typename T>
 ProjectionOpKernel<T>::~ProjectionOpKernel() {
   if (lamda)
-    alloc_->Deallocate<char>((char*)lamda); 
+    alloc_->Deallocate<char>((char*)lamda);
   if (workspace_sort)
-    alloc_->Deallocate<char>((char*)workspace_sort); 
+    alloc_->Deallocate<char>((char*)workspace_sort);
   if (workspace_scan)
-    alloc_->Deallocate<char>((char*)workspace_scan); 
+    alloc_->Deallocate<char>((char*)workspace_scan);
 }
 
 template <typename T>
@@ -55,7 +55,8 @@ __inline__ __device__
 T warpReduceMax(T val) {
   const int warpSize = 32;
   for (int offset = warpSize >> 1; offset > 0; offset >>= 1) {
-    val = math::Max<T>::Compute(__shfl_down(val, offset), val);
+    // val = math::Max<T>::Compute(__shfl_down(val, offset), val);
+    val = math::Max<T>::Compute(__shfl_down_sync(0xffffffff, val, offset), val);
   }
   return val;
 }
@@ -71,7 +72,7 @@ __global__ void BatchedFindMax(T *out, const T* mu, const T* mu_scan, int N) {
   for (int round = 0; round < (N+blockDim.x-1)/blockDim.x; round++) {
     int offset_within_vec = threadIdx.x + round*blockDim.x;
     int idx = offset + offset_within_vec;
-    if (offset_within_vec < N) {  
+    if (offset_within_vec < N) {
       if ((mu[idx] + (1.f - mu_scan[idx])/(idx+1)) > 0) {
         max_index = offset_within_vec;
       }
@@ -79,7 +80,7 @@ __global__ void BatchedFindMax(T *out, const T* mu, const T* mu_scan, int N) {
   }
 
   max_index = warpReduceMax(max_index);
-  if (lane == 0) 
+  if (lane == 0)
     index_buf[warp_id] = max_index;
   __syncthreads();
   max_index = (threadIdx.x < blockDim.x / warpSize) ? index_buf[lane] : 0;
@@ -96,7 +97,7 @@ __global__ void BatchedGetOutput(T *x, const T* y, const T* lamda, int N) {
   for (int round = 0; round < (N+blockDim.x-1)/blockDim.x; round++) {
     int offset_within_vec = threadIdx.x + round*blockDim.x;
     int idx = offset + offset_within_vec;
-    if (offset_within_vec < N) {  
+    if (offset_within_vec < N) {
       T tmp = y[idx] + lamda[blockIdx.x];
       if (tmp > 0)
         x[idx] = tmp;
@@ -117,7 +118,7 @@ void ProjectionOpKernel<T>::Compute(OpContext* context) {
   int N = var_in.count()/var_in.dims(0);
 
   /*var_in.DebugNumerical<T>();*/
-  //To further reduce the workspace of tpc_word, 
+  //To further reduce the workspace of tpc_word,
   //we need to split the N dimension
   const int MINI_BATCH = (batch < 1000) ? batch : 1000;
   if (!lamda) {
