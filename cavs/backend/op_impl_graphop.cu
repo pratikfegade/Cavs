@@ -5,6 +5,7 @@
 #include "cavs/util/macros_gpu.h"
 #include "cavs/util/op_util.h"
 
+#include <iostream>
 #include <string>
 
 using ::midend::Tensor;
@@ -54,7 +55,7 @@ class GraphGatherOp : public OpImpl {
       for (int id : tensor_ids_for_gather) out += std::to_string(id) + "\t";
       VLOG(V_DEBUG) << out;
     }
-    //for skewed batched trees, in the backward pass, 
+    //for skewed batched trees, in the backward pass,
     //the root of one tree does not need to gather,
     //but the inode of other tree have to gather
     //so we loose this constraint
@@ -112,7 +113,7 @@ class GraphScatterOp : public OpImpl {
     CHECK(out->count() == inp.count())
           << "Input count:\t" << inp.count()
           << "\t" << inp.debug_size() << "Bytes\n"
-          << "Output count:\t" << out->count() 
+          << "Output count:\t" << out->count()
           << "\t" << out->debug_size() << "Bytes";
     CHECK(inp.IsDynamicShape());
     CHECK(out->IsDynamicShape());
@@ -179,7 +180,7 @@ class GraphPushOp : public OpImpl {
     //CHECK(out->count() >= inp.count())
     VLOG(V_DEBUG) << "Input count:\t" << inp.count()
                   << "\t" << inp.debug_size() << "Bytes\n"
-                  << "Output count:\t" << out->count() 
+                  << "Output count:\t" << out->count()
                   << "\t" << out->debug_size() << "Bytes";
 
     T* out_ptr = out->mutable_data<T>();
@@ -220,13 +221,29 @@ class GraphPullOp : public OpImpl {
     CHECK(inp.count() >= out->count())
           << "Input count:\t" << inp.count()
           << "\t" << inp.debug_size() << "Bytes\n"
-          << "Output count:\t" << out->count() 
+          << "Output count:\t" << out->count()
           << "\t" << out->debug_size() << "Bytes";
 
     //out tensor must be local
     //if in tensor is a global tensor(in the backward of pull)
     //CHECK(inp.IsFullShape());
     const vector<int>& gids = gs->GetJobId();
+
+    // {
+    //   std::cout << "[PULL_OP] Pulling for gids " << std::endl;
+    //   for (auto id: gids) {
+    // 	std::cout << id << " " << std::endl;
+    //   }
+    //   std::cout << std::endl;
+    //   std::cout << "Input count:\t" << inp.count()
+    // 	     << "\t" << inp.debug_size() << "Bytes\n"
+    // 	     << "Output count:\t" << out->count()
+    // 	     << "\t" << out->debug_size() << "Bytes" << std::endl;
+    // }
+
+
+
+
     context->SetDynDim(gids.size());
     context->ScaleOutputTensor();
     int stride = out->count()/out->dims(0);
@@ -248,6 +265,21 @@ class GraphPullOp : public OpImpl {
     BatchedDynamicSelectedInputSliceCopyKernel<T><<<blocksPerGrid, threadsPerBlock, 0, stream_>>>(
             out->mutable_data<T>(), stride, inp.data<T>(), stride, gs->gpu_idx_buf(), stride);
     checkCudaError(cudaGetLastError());
+
+    // {
+    //   vector<float> res(inp.count());
+    //   if (inp.device_type() == GPU) {
+    // 	checkCudaError(cudaMemcpy(res.data(), inp.data<float>(),
+    // 				  inp.count()*sizeof(float), cudaMemcpyDeviceToHost));
+    //   } else {
+    // 	checkCudaError(cudaMemcpy(res.data(), inp.data<float>(),
+    // 				  inp.count()*sizeof(float), cudaMemcpyHostToHost));
+    //   }
+    //   std::cout << "[PULL_OP] Pulled for gids " << std::endl;
+    //   for (auto id: gids) {
+    // 	std::cout << id << " " << res[id] << " " << std::endl;
+    //   }
+    // }
 
     inp.DebugNumerical<T>();
     out->DebugNumerical<T>();

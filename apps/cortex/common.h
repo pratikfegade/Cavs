@@ -5,8 +5,10 @@
 
 #include <chrono>
 #include <iostream>
+#include <functional>
 #include <fstream>
 #include <vector>
+#include <cuda_profiler_api.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -28,12 +30,12 @@ class SSTReader {
     input_file(input), graph_file(graph) {
   }
 
-    void next_batch(vector<int>* batch_graph, vector<float>* batch_input, int* num_nodes) {
+  void next_batch(const int batch_size, vector<int>* batch_graph, vector<float>* batch_input, int* num_nodes) {
     std::fill(batch_input->begin(), batch_input->end(), 0);
     std::fill(batch_graph->begin(), batch_graph->end(), -1);
     int i = 0;
     *num_nodes = 0;
-    while (i < FLAGS_batch_size) {
+    while (i < batch_size) {
       if (input_file.eof()) { // which mean it reaches the end of the file
         input_file.clear();
         input_file.seekg(0, ios::beg);
@@ -94,17 +96,19 @@ class SSTReader {
 float measure_time(std::function<float()> runner, bool mem_profile = false) {
   int w_iters = mem_profile ? 0 : 10;
   int a_iters = mem_profile ? 1 : 10;
+  // int w_iters = mem_profile ? 0 : 0;
+  // int a_iters = mem_profile ? 1 : 1;
   for (int i = 0; i < w_iters; ++i) {
     runner();
   }
 
-  float cg_gen_time = 0.0;
+  // cudaProfilerStart();
   float cg_exe_time = 0.0;
   for (int i = 0; i < a_iters; ++i) {
     auto p = runner();
-    cg_gen_time += p.first;
-    cg_exe_time += p.second;
+    cg_exe_time += p;
   }
+  // cudaProfilerStop();
   return cg_exe_time / a_iters;
 }
 
@@ -114,5 +118,5 @@ void report_time(float all_time_us, int num_nodes, int num_batches) {
   float node_time_us = all_time_us / num_nodes;
   float batch_time_ms = all_time_ms / num_batches;
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
-  std::cout << "MEM," << dynet::get_max_mem_usage() << std::endl;
+  // std::cout << "MEM," << dynet::get_max_mem_usage() << std::endl;
 }

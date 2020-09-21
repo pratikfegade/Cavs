@@ -1,4 +1,5 @@
 #include "cavs/midend/graph_session.h"
+#include <iostream>
 
 using std::string;
 using std::vector;
@@ -20,7 +21,7 @@ const Tensor* GraphSession::GetTensor(const string& name, bool recursive) const 
     return t;
   else if (t = global_sess_->GetTensor(name, recursive))
     return t;
-  else 
+  else
     return NULL;
 }
 
@@ -56,7 +57,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
     //1) the input is in main scope and not moved into sub-scope(such as placeholder)
     //2) the input is in main scope and moved into sub-scope(such as slice)
     //for both cases, we use the recursive method to fetch tensor
-    const Tensor* t = GetTensor(TensorNameInFunctionContext(input), true); 
+    const Tensor* t = GetTensor(TensorNameInFunctionContext(input), true);
     CHECK(t) << "Getting " << TensorNameInFunctionContext(input);
     VLOG(V_DEBUG) << "[In Graph Session]: the addr of " << TensorNameInFunctionContext(input)
                   << " is " << t;
@@ -65,7 +66,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
 
   for (auto* output : node->output()) {
     //Session of the function is the first to support "sharing" input model.
-    //That means, one tensor is fed as the input of two different operators. 
+    //That means, one tensor is fed as the input of two different operators.
     //This is the case of LSTM because C is both scattered and fed to compute H
     //For the backward, that means dC is calculated twice in two operators.
     //And therefore these two dCs should be accumulated.
@@ -84,7 +85,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
       const Tensor* upper_t = GetTensor(TensorNameInFunctionContext(output), true);
       bool can_share_memory = GetSingleArg<bool>(op_def, "ShareMemory", false);
       //there is a corner case that the share memory should be disabled during runtime
-      //that is the backward of io = (i+bi). 
+      //that is the backward of io = (i+bi).
       //i and io are batched but bi can not be batched
       //During the backwarding, the gradient of bi can not be applied with the sharememory feature
       if (can_share_memory) {
@@ -99,7 +100,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
           CHECK_NOTNULL(edge = output->scope()->FindEdge(GetOriginName(output->name())));
           bool fwd_dynamic_shape = edge->IsDynamicEnabled();
           if (dynamic_shape ^ fwd_dynamic_shape) {
-            //otherwise it means expanding the dims 
+            //otherwise it means expanding the dims
             //there are no such operations
             CHECK(dynamic_shape);
             can_share_memory = false;
@@ -123,7 +124,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
         //for single-input and single-output operators
         //and only share output(0) with input(0)
         //CHECK(node->inputs_size() == 1); //reshape need two inputs
-        CHECK(node->output_size() == 1); 
+        CHECK(node->output_size() == 1);
         const Tensor* rt = NULL;
         CHECK_NOTNULL(rt = GetTensor(TensorNameInFunctionContext(node->input(0)), true));
         dynamic_shape = rt->IsDynamicShape();
@@ -164,7 +165,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
           partial_shape = full_shape;
         }
 
-        Allocator* alloc = GetAllocator(op_def); 
+        Allocator* alloc = GetAllocator(op_def);
         CHECK_NOTNULL(alloc);
         VLOG(V_DEBUG) << "[In Graph Session]: Allocating full tensor for "
                       << TensorNameInFunctionContext(output)
@@ -192,7 +193,7 @@ OpContext* GraphSession::GetContext(const Node* node) {
       }
       CHECK_NOTNULL(t = GetTensor(TensorNameInFunctionContext(output)));
       if (output->isGradient() && !can_share_memory)
-        const_cast<Tensor*>(t)->SetZeroInitEnforced(); 
+        const_cast<Tensor*>(t)->SetZeroInitEnforced();
     }else {
       dynamic_shape = false;
     }
@@ -218,7 +219,7 @@ bool InsertGraphSession(const std::string& name, GraphSession* sess) {
   if (__internal::graph_sess_pool.find(name) != __internal::graph_sess_pool.end()) {
     return false;
   }else {
-    __internal::graph_sess_pool.emplace(name, sess); 
+    __internal::graph_sess_pool.emplace(name, sess);
     return true;
   }
 }
