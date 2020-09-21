@@ -25,14 +25,14 @@ class ActivationOpCudnnBase : public OpImpl {
 template <cudnnActivationMode_t mode>
 ActivationOpCudnnBase<mode>::ActivationOpCudnnBase(const OpDef& def)
     : OpImpl(def) {
-  checkCUDNNError(cudnnCreateTensorDescriptor(&x_desc_));    
-  checkCUDNNError(cudnnCreateTensorDescriptor(&y_desc_));    
-  checkCUDNNError(cudnnCreateActivationDescriptor(&activation_desc_));    
+  checkCUDNNError(cudnnCreateTensorDescriptor(&x_desc_));
+  checkCUDNNError(cudnnCreateTensorDescriptor(&y_desc_));
+  checkCUDNNError(cudnnCreateActivationDescriptor(&activation_desc_));
   /*//Currently, the arguments are hard coded.*/
   /*checkCUDNNError(cudnnSetActivationDescriptor(activation_desc_,*/
         /*CUDNN_ACTIVATION_RELU, CUDNN_NOT_PROPAGATE_NAN, 0));    */
   checkCUDNNError(cudnnSetActivationDescriptor(activation_desc_,
-        mode, CUDNN_NOT_PROPAGATE_NAN, 0));    
+        mode, CUDNN_NOT_PROPAGATE_NAN, 0));
 }
 
 template <cudnnActivationMode_t mode>
@@ -45,7 +45,7 @@ ActivationOpCudnnBase<mode>::~ActivationOpCudnnBase() {
 template <typename T, cudnnActivationMode_t mode>
 class ActivationOpCudnn : public ActivationOpCudnnBase<mode> {
  public:
-  explicit ActivationOpCudnn(const OpDef& def) 
+  explicit ActivationOpCudnn(const OpDef& def)
       : ActivationOpCudnnBase<mode>(def) {}
   void Compute(OpContext* context) override;
 
@@ -89,7 +89,7 @@ void ActivationOpCudnn<T, mode>::Compute(OpContext* context) {
 template <typename T, cudnnActivationMode_t mode>
 class ActivationOpCudnnGrad : public ActivationOpCudnnBase<mode> {
  public:
-  explicit ActivationOpCudnnGrad(const OpDef& def) 
+  explicit ActivationOpCudnnGrad(const OpDef& def)
       : ActivationOpCudnnBase<mode>(def) {}
   void Compute(OpContext* context) override;
 

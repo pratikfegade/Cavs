@@ -96,19 +96,15 @@ class SSTReader {
 float measure_time(std::function<float()> runner, bool mem_profile = false) {
   int w_iters = mem_profile ? 0 : 10;
   int a_iters = mem_profile ? 1 : 10;
-  // int w_iters = mem_profile ? 0 : 0;
-  // int a_iters = mem_profile ? 1 : 1;
   for (int i = 0; i < w_iters; ++i) {
     runner();
   }
 
-  // cudaProfilerStart();
   float cg_exe_time = 0.0;
   for (int i = 0; i < a_iters; ++i) {
     auto p = runner();
     cg_exe_time += p;
   }
-  // cudaProfilerStop();
   return cg_exe_time / a_iters;
 }
 

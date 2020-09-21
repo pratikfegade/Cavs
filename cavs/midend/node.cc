@@ -10,7 +10,7 @@ using std::vector;
 
 namespace midend {
 
-Node::Node(Scope* located) : 
+Node::Node(Scope* located) :
   located_(located), inputs_(0), outputs_(0), stmt_(NULL) {
   located->AddNode(this);
 }
@@ -82,7 +82,7 @@ Statement* SingleNode::Compile(
     SessionBase* sess) {
   if (!stmt_) {
     {
-      CHECK(sess && (!sess_debug_ || sess_debug_ == sess)) 
+      CHECK(sess && (!sess_debug_ || sess_debug_ == sess))
           << "currently, we only support one node is compiled by one session";
       sess_debug_ = sess;
     }
@@ -93,11 +93,11 @@ Statement* SingleNode::Compile(
          op_def().name() == "Data")) {
       OpDef mpi_def = op_def();
       mpi_def.set_name(op_def().name()+"MPI");
-      LOG(INFO) << "Compiling SingleNode:\t" << mpi_def.name();
+      // LOG(INFO) << "Compiling SingleNode:\t" << mpi_def.name();
       VLOG(V_DEBUG) << mpi_def.DebugString();
       op = CreateOp(mpi_def);
     }else {
-      LOG(INFO) << "Compiling SingleNode:\t" << op_def().DebugString();
+      // LOG(INFO) << "Compiling SingleNode:\t" << op_def().DebugString();
       VLOG(V_DEBUG) << op_def().DebugString();
       op = CreateOp(op_def());
     }
@@ -135,7 +135,7 @@ Statement* GraphNode::Compile(
     OpImpl *pop_ret_op = CreateOp(pop_ret_def);
     OpContext* push_ctxt = ctxt->ExtractContext({1}, {});
     OpContext* pop_ctxt  = ctxt->ExtractContext({}, {0});
-    
+
 
     VLOG(V_DEBUG) << "Compiling GraphNode:\t" << op_def().name();
     if (!(gsess_ = GetGraphSession(op_def_.output(0)))) {
@@ -155,7 +155,7 @@ Statement* GraphNode::Compile(
       sn->SetContainedScope(node_func);
       for (Node* n : sn->nodes_) {
         if (n->name() == "Push") {
-          pop_exist = true; 
+          pop_exist = true;
           break;
         }
       }
@@ -208,7 +208,7 @@ Statement* GraphGradNode::Compile(
     //the graph node must have been compile already
     //that means its graph session has been set
     CHECK_NOTNULL(gsess_ = GetGraphSession(GetOriginName(op_def_.input(0))));
-    
+
     CHECK(main_scope()->FindChildScope("Node"));
     bool pop_exist = false;
     ScopedNode* sn = dynamic_cast<ScopedNode*>(main_scope()->FindChildScope("Node")->FindNode(GetGradientName("Node")));
@@ -219,7 +219,7 @@ Statement* GraphGradNode::Compile(
       sn->SetContainedScope(node_grad_func);
       for (Node* n : sn->nodes_) {
         if (n->name() == "Push") {
-          pop_exist = true; 
+          pop_exist = true;
           break;
         }
       }

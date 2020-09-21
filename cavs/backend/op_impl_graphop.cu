@@ -48,7 +48,6 @@ class GraphGatherOp : public OpImpl {
       VLOG(V_DEBUG) << out;
     }
 
-    /*const vector<int>& child_tensor_ids = gs->GatherTensorIds(gids, child_offset_);*/
     const vector<int>& tensor_ids_for_gather = gs->CurrentRoundTensorIdsForGather(child_offset_);
     if (VLOG_IS_ON(V_DEBUG)) {
       string out;
@@ -88,6 +87,23 @@ class GraphGatherOp : public OpImpl {
     checkCudaError(cudaGetLastError());
 
     out->DebugNumerical<T>();
+
+    // {
+    //   std::cout << "[GATHERED] " << std::endl;
+    //   vector<float> res(out->count());
+    //   if (out->device_type() == GPU) {
+    // 	checkCudaError(cudaMemcpy(res.data(), out->data<float>(),
+    // 				  out->count()*sizeof(float), cudaMemcpyDeviceToHost));
+    //   } else {
+    // 	checkCudaError(cudaMemcpy(res.data(), out->data<float>(),
+    // 				  out->count()*sizeof(float), cudaMemcpyHostToHost));
+    //   }
+    //   std::cout << "[PULL_OP] Gathered " << out->count() << std::endl;
+    //   for (int i = 0; i < out->count(); ++i) {
+    // 	std::cout << res[i] << " ";
+    //   }
+    //   std::cout << std::endl;
+    // }
   }
 
  private:
