@@ -3,18 +3,35 @@
 #include "cavs/util/logging.h"
 #include "cavs/util/op_util.h"
 
+#include <atomic>
+
 using std::string;
 
 namespace midend {
 
+  std::atomic<long> Allocator::current_mem_usage{0};
+  std::atomic<long> Allocator::max_mem_usage{0};
+  std::unordered_map<void*, long> Allocator::buf_size_map;
+
 class CPUAllocator : public Allocator {
  public:
-  CPUAllocator() 
+  CPUAllocator()
       : Allocator(DeviceTypeToString(CPU), CPU) {}
   void* AllocateRaw(size_t nbytes) override {
-    return malloc(nbytes); 
+    void* ptr = malloc(nbytes);
+#ifdef CORTEX_MEM_PROF
+    Allocator::current_mem_usage += nbytes;
+    if (Allocator::current_mem_usage > Allocator::max_mem_usage)
+      Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
+    Allocator::buf_size_map[ptr] = nbytes;
+#endif
+    return ptr;
   }
   void DeallocateRaw(void* buf) override {
+#ifdef CORTEX_MEM_PROF
+    Allocator::current_mem_usage -= Allocator::buf_size_map[buf];
+    Allocator::buf_size_map.erase(buf);
+#endif
     free(buf);
   }
   void InitWithZero(void* buf, size_t nbytes) override {
@@ -75,4 +92,4 @@ Allocator* GetAllocator(const string& dev) {
     return allocator_factory::GlobalAllocatorRegistry()->at(dev);
 }
 
-} //namespace midend 
+} //namespace midend

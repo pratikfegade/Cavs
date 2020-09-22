@@ -2,6 +2,7 @@
 #include "cavs/frontend/cxx/graphsupport.h"
 #include "cavs/frontend/cxx/session.h"
 #include "cavs/proto/opt.pb.h"
+#include "cavs/midend/allocator.h"
 
 #include <chrono>
 #include <iostream>
@@ -108,11 +109,12 @@ float measure_time(std::function<float()> runner, bool mem_profile = false) {
   return cg_exe_time / a_iters;
 }
 
-void report_time(float all_time_us, int num_nodes, int num_batches) {
+void report_time(float all_time_us, int num_nodes, int num_batches, long model_size_in_bytes) {
   float all_time_ms = all_time_us / 1000.0;
 
   float node_time_us = all_time_us / num_nodes;
   float batch_time_ms = all_time_ms / num_batches;
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
-  // std::cout << "MEM," << dynet::get_max_mem_usage() << std::endl;
+  float model_size_in_kbytes = model_size_in_bytes / 1024.0;
+  std::cout << "MEM," << midend::get_max_mem_usage() - model_size_in_kbytes << std::endl;
 }

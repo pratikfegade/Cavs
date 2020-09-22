@@ -7,13 +7,29 @@
 
 #include <string>
 #include <unordered_map>
+#include <iostream>
+#include <atomic>
 
 namespace midend {
 
+#define CORTEX_MEM_PROF
+
 class Allocator {
+#ifdef CORTEX_MEM_PROF
+public:
+  static std::atomic<long> current_mem_usage;
+  static std::atomic<long> max_mem_usage;
+  static std::unordered_map<void*, long> buf_size_map;
+#endif
+
  public:
   Allocator(const std::string& name, DeviceType type) :
-    name_(name), type_(type) {}
+    name_(name), type_(type) {
+#ifdef CORTEX_MEM_PROF
+    std::cerr << "MEMORY PROFILING ON!!" << std::endl;
+#endif
+
+  }
   FORCE_INLINE const std::string& name() const { return name_; }
   FORCE_INLINE DeviceType type() const { return type_; }
 
@@ -23,7 +39,7 @@ class Allocator {
 
   template <typename T>
   T* Allocate(size_t n_elements) {
-    void *p = AllocateRaw(n_elements*sizeof(T)); 
+    void *p = AllocateRaw(n_elements*sizeof(T));
     return reinterpret_cast<T*>(p);
   }
   template <typename T>
@@ -40,6 +56,12 @@ class Allocator {
  protected:
   Allocator() {}
 };
+
+inline float get_max_mem_usage() {
+  long nbytes = Allocator::max_mem_usage.load();
+  float kbytes = ((float) nbytes) / 1024.0;
+  return kbytes;
+}
 
 class TrackingAllocator : public Allocator {
  public:
@@ -67,21 +89,21 @@ Allocator* GetAllocator(const std::string& device);
     REGISTER_STATIC_ALLOCATOR_CONCAT(ctr, key, alloc)
 #define REGISTER_STATIC_ALLOCATOR_CONCAT(ctr, key, alloc)      \
     static allocator_factory::AllocatorRegister                \
-        register_body_##ctr##_allocator(key, alloc)                       
+        register_body_##ctr##_allocator(key, alloc)
 
 namespace allocator_factory {
 
 class AllocatorRegister {
  public:
   AllocatorRegister(const std::string& name, Allocator* alloc) {
-    InitInternal(name, alloc); 
+    InitInternal(name, alloc);
   }
  private:
-  void InitInternal(const std::string& name, Allocator* alloc); 
+  void InitInternal(const std::string& name, Allocator* alloc);
 };
 
 } //namespace allocator_factory
 
-} //namepsace midend 
+} //namepsace midend
 
 #endif

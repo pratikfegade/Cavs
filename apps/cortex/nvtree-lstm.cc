@@ -11,6 +11,7 @@
 
 using namespace std;
 
+DEFINE_bool(mem, false, "Mem profiling");
 DEFINE_int32(batch_size, 10, "batch");
 DEFINE_int32(vocab_size, 21701, "input size");
 DEFINE_int32(hidden_size, 256, "hidden size");
@@ -141,10 +142,14 @@ int main(int argc, char* argv[]) {
       std::chrono::duration<float> fs = (end - start);
       return duration_cast<microseconds>(fs).count();
     };
-    all_time += measure_time(runner);
+    all_time += measure_time(runner, FLAGS_mem);
   }
 
-  report_time(all_time, num_nodes, max_batches);
+  long model_size_in_bytes = 4 * (FLAGS_vocab_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size);
+  report_time(all_time, num_nodes, max_batches, model_size_in_bytes);
 
   return 0;
 }
