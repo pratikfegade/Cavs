@@ -13,7 +13,7 @@ using namespace std;
 
 DEFINE_bool(mem, false, "Mem profiling");
 DEFINE_int32(batch_size, 10, "batch");
-DEFINE_int32(vocab_size, 21701, "input size");
+DEFINE_int32(vocab_size, 20000, "input size");
 DEFINE_int32(hidden_size, 256, "hidden size");
 DEFINE_int32(max_batches, 100, "iterations");
 DEFINE_double(init_scale, 0.1f, "init random scale of variables");
