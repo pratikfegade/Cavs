@@ -12,7 +12,7 @@
 
 namespace midend {
 
-#define CORTEX_MEM_PROF
+// #define CORTEX_MEM_PROF
 
 class Allocator {
 #ifdef CORTEX_MEM_PROF
@@ -58,9 +58,12 @@ public:
 };
 
 inline float get_max_mem_usage() {
+#ifdef CORTEX_MEM_PROF
   long nbytes = Allocator::max_mem_usage.load();
   float kbytes = ((float) nbytes) / 1024.0;
   return kbytes;
+#endif
+  return -10000000;
 }
 
 class TrackingAllocator : public Allocator {

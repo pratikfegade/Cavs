@@ -9,9 +9,11 @@ using std::string;
 
 namespace midend {
 
-  std::atomic<long> Allocator::current_mem_usage{0};
-  std::atomic<long> Allocator::max_mem_usage{0};
-  std::unordered_map<void*, long> Allocator::buf_size_map;
+#ifdef CORTEX_MEM_PROF
+std::atomic<long> Allocator::current_mem_usage{0};
+std::atomic<long> Allocator::max_mem_usage{0};
+std::unordered_map<void*, long> Allocator::buf_size_map;
+#endif
 
 class CPUAllocator : public Allocator {
  public:
