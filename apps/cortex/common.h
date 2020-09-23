@@ -117,4 +117,5 @@ void report_time(float all_time_us, int num_nodes, int num_batches, long model_s
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
   float model_size_in_kbytes = model_size_in_bytes / 1024.0;
   std::cout << "MEM," << midend::get_max_mem_usage() - model_size_in_kbytes << std::endl;
+  std::cout << "M_EM," << midend::get_max_mem_usage() << " " << model_size_in_kbytes << std::endl;
 }

@@ -13,9 +13,9 @@
 using namespace std;
 
 DEFINE_bool(mem, false, "Mem profiling");
-DEFINE_int32(batch_size, 10, "batch");
+DEFINE_int32(batch_size, 1, "batch");
 DEFINE_int32(hidden_size, 256, "hidden size");
-DEFINE_int32(max_batches, 100, "iterations");
+DEFINE_int32(max_batches, 1, "iterations");
 DEFINE_double(init_scale, 0.1f, "init random scale of variables");
 DEFINE_string(input_file, "", "input sentences");
 DEFINE_string(graph_file, "", "graph dependency");
