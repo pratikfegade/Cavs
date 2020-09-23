@@ -53,7 +53,7 @@ void binaryTree(vector<int>* graph) {
   }
   one_tree.push_back(-1);
   CHECK(one_tree.size() == 2*(1 << FLAGS_height)-1);
-
+  std::cout << "[NODES] " << one_tree.size() << std::endl;
   graph->clear();
   for (int i = 0; i < FLAGS_batch_size; i++) {
     std::copy(one_tree.begin(), one_tree.end(), graph->begin() + i*(2*(1 << FLAGS_height)-1));
@@ -74,9 +74,9 @@ int main(int argc, char* argv[]) {
 
   float all_time = 0.0;
   int num_nodes = 0;
+  binaryTree(&graph_data);
   for (int j = 0; j < FLAGS_max_batches; j++) {
     int this_num_nodes = 0;
-    binaryTree(&graph_data);
     num_nodes += FLAGS_batch_size * (2 * (1 << FLAGS_height) - 1);
 
     auto runner = [&] {
