@@ -12,11 +12,12 @@
 
 namespace midend {
 
-// #define CORTEX_MEM_PROF
+ #define CORTEX_MEM_PROF
 
 class Allocator {
-#ifdef CORTEX_MEM_PROF
 public:
+  static bool mem_prof_on;
+#ifdef CORTEX_MEM_PROF
   static std::atomic<long> current_mem_usage;
   static std::atomic<long> max_mem_usage;
   static std::unordered_map<void*, long> buf_size_map;
@@ -64,6 +65,10 @@ inline float get_max_mem_usage() {
   return kbytes;
 #endif
   return -10000000;
+}
+
+inline void set_mem_prof(bool value) {
+  Allocator::mem_prof_on = value;
 }
 
 class TrackingAllocator : public Allocator {

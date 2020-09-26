@@ -2,6 +2,7 @@
 /*#include "cavs/midend/devices.h"*/
 #include "cavs/util/macros_gpu.h"
 #include "cavs/util/op_util.h"
+#include <signal.h>
 
 namespace midend {
 
@@ -16,17 +17,27 @@ class GPUAllocator : public Allocator {
     checkCudaError(cudaMemset(ptr, 0, nbytes));
     CHECK_NOTNULL(ptr);
 #ifdef CORTEX_MEM_PROF
-    Allocator::current_mem_usage += nbytes;
-    if (Allocator::current_mem_usage > Allocator::max_mem_usage)
-      Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
-    Allocator::buf_size_map[ptr] = nbytes;
+    if (Allocator::mem_prof_on) {
+      Allocator::current_mem_usage += nbytes;
+      if (Allocator::current_mem_usage > Allocator::max_mem_usage)
+	Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
+      Allocator::buf_size_map[ptr] = nbytes;
+      if (nbytes == 20480000) {
+	std::cout << "[GALLOC] " << nbytes << " " << Allocator::current_mem_usage << " " << Allocator::max_mem_usage << std::endl;
+	// raise(SIGSEGV);
+      }
+   }
 #endif
     return ptr;
   }
   void DeallocateRaw(void* buf) override {
 #ifdef CORTEX_MEM_PROF
-    Allocator::current_mem_usage -= Allocator::buf_size_map[buf];
-    Allocator::buf_size_map.erase(buf);
+    if (Allocator::mem_prof_on && Allocator::buf_size_map.count(buf)) {
+      Allocator::current_mem_usage -= Allocator::buf_size_map[buf];
+      // std::cout << "[GFREE] " << Allocator::buf_size_map[buf] << " " << Allocator::current_mem_usage << " " <<
+	// Allocator::max_mem_usage << std::endl;
+      Allocator::buf_size_map.erase(buf);
+    }
 #endif
     checkCudaError(cudaFree(buf));
   }

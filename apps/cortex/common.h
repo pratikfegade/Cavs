@@ -101,11 +101,15 @@ float measure_time(std::function<float()> runner, bool mem_profile = false) {
     runner();
   }
 
+  midend::set_mem_prof(true);
+
   float cg_exe_time = 0.0;
   for (int i = 0; i < a_iters; ++i) {
     auto p = runner();
     cg_exe_time += p;
   }
+
+  midend::set_mem_prof(false);
   return cg_exe_time / a_iters;
 }
 
@@ -116,6 +120,7 @@ void report_time(float all_time_us, int num_nodes, int num_batches, long model_s
   float batch_time_ms = all_time_ms / num_batches;
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
   float model_size_in_kbytes = model_size_in_bytes / 1024.0;
-  std::cout << "MEM," << midend::get_max_mem_usage() - model_size_in_kbytes << std::endl;
-  std::cout << "M_EM," << midend::get_max_mem_usage() << " " << model_size_in_kbytes << std::endl;
+  std::cout << "MEM," << (midend::get_max_mem_usage() - model_size_in_kbytes)<< std::endl;
+  std::cout << "M_EM," << (midend::get_max_mem_usage() - model_size_in_kbytes) << " " <<
+    midend::get_max_mem_usage() << " " << model_size_in_kbytes << std::endl;
 }

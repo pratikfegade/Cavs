@@ -9,6 +9,7 @@ using std::string;
 
 namespace midend {
 
+bool Allocator::mem_prof_on(false);
 #ifdef CORTEX_MEM_PROF
 std::atomic<long> Allocator::current_mem_usage{0};
 std::atomic<long> Allocator::max_mem_usage{0};
@@ -21,19 +22,26 @@ class CPUAllocator : public Allocator {
       : Allocator(DeviceTypeToString(CPU), CPU) {}
   void* AllocateRaw(size_t nbytes) override {
     void* ptr = malloc(nbytes);
-#ifdef CORTEX_MEM_PROF
-    Allocator::current_mem_usage += nbytes;
-    if (Allocator::current_mem_usage > Allocator::max_mem_usage)
-      Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
-    Allocator::buf_size_map[ptr] = nbytes;
-#endif
+// #ifdef CORTEX_MEM_PROF
+//     if (Allocator::mem_prof_on) {
+//       Allocator::current_mem_usage += nbytes;
+//       if (Allocator::current_mem_usage > Allocator::max_mem_usage)
+// 	Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
+//       Allocator::buf_size_map[ptr] = nbytes;
+//       std::cout << "[CALLOC] " << nbytes << " " << Allocator::current_mem_usage << " " << Allocator::max_mem_usage << std::endl;
+//     }
+// #endif
     return ptr;
   }
   void DeallocateRaw(void* buf) override {
-#ifdef CORTEX_MEM_PROF
-    Allocator::current_mem_usage -= Allocator::buf_size_map[buf];
-    Allocator::buf_size_map.erase(buf);
-#endif
+// #ifdef CORTEX_MEM_PROF
+//     if (Allocator::mem_prof_on && Allocator::buf_size_map.count(buf)) {
+//       Allocator::current_mem_usage -= Allocator::buf_size_map[buf];
+//       std::cout << "[CFREE] " << Allocator::buf_size_map[buf] << " " <<
+// 	Allocator::current_mem_usage << " " << Allocator::max_mem_usage << std::endl;
+//       Allocator::buf_size_map.erase(buf);
+//     }
+// #endif
     free(buf);
   }
   void InitWithZero(void* buf, size_t nbytes) override {
