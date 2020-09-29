@@ -133,14 +133,19 @@ int main(int argc, char* argv[]) {
     num_nodes += this_num_nodes;
 
     auto runner = [&] {
-      time_point<system_clock> start = system_clock::now();
+      // time_point<system_clock> start = system_clock::now();
+      Timing::TimingBegin("Overall");
 
       sess.Run({graph_output}, {{graph,    graph_data.data()},
 	    {word_idx, input_data.data()}});
 
-      time_point<system_clock> end = system_clock::now();
-      std::chrono::duration<float> fs = (end - start);
-      return duration_cast<microseconds>(fs).count();
+      Timing::TimingEnd("Overall");
+      float ms_time = Timing::TimeInMs("Overall");
+      Timing::Reset("Overall");
+      return ms_time * 1000.0;
+      // time_point<system_clock> end = system_clock::now();
+      // std::chrono::duration<float> fs = (end - start);
+      // return duration_cast<microseconds>(fs).count();
     };
     all_time += measure_time(runner, FLAGS_mem);
   }

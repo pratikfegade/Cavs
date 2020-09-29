@@ -1,4 +1,3 @@
-
 #include "cavs/frontend/cxx/sym.h"
 #include "cavs/frontend/cxx/graphsupport.h"
 #include "cavs/frontend/cxx/session.h"
@@ -80,13 +79,18 @@ int main(int argc, char* argv[]) {
     num_nodes += FLAGS_batch_size * (2 * (1 << FLAGS_height) - 1);
 
     auto runner = [&] {
-      time_point<system_clock> start = system_clock::now();
+      // time_point<system_clock> start = system_clock::now();
+      Timing::TimingBegin("Overall");
 
       sess.Run({graph_output}, {{graph, graph_data.data()}});
 
-      time_point<system_clock> end = system_clock::now();
-      std::chrono::duration<float> fs = (end - start);
-      return duration_cast<microseconds>(fs).count();
+      Timing::TimingEnd("Overall");
+      float ms_time = Timing::TimeInMs("Overall");
+      Timing::Reset("Overall");
+      return ms_time * 1000.0;
+      // time_point<system_clock> end = system_clock::now();
+      // std::chrono::duration<float> fs = (end - start);
+      // return duration_cast<microseconds>(fs).count();
     };
     all_time += measure_time(runner, FLAGS_mem);
   }

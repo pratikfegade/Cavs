@@ -12,7 +12,7 @@
 
 namespace midend {
 
- #define CORTEX_MEM_PROF
+  // #define CORTEX_MEM_PROF
 
 class Allocator {
 public:
