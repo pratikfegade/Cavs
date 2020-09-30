@@ -1,6 +1,8 @@
 #include "cavs/midend/graph_scheduler.h"
 #include "cavs/proto/devices.pb.h"
 #include "cavs/util/macros_gpu.h"
+#include "cavs/util/timing.h"
+#include "cortex_defs.h"
 
 #include <algorithm>
 
@@ -10,20 +12,24 @@ namespace midend {
 
 //parent-idx form
 int GraphSchedulerBase::LoadGraph(const Tensor& graph_struct) {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("DynamicBatchingTime");
+#endif
+
   VLOG(V_DEBUG) << "Loading graph...";
   CHECK(graph_struct.dims() == 2) << graph_struct.debug_info();
   CHECK(graph_struct.device_type() == CPU) << graph_struct.debug_info();
   if (batch_size_ == 0 && max_seq_length_ == 0) {
     batch_size_ = graph_struct.dims(0);
     max_seq_length_ = graph_struct.dims(1);
-    __forward_parents_ids_.resize(batch_size_*max_seq_length_); 
-    __forward_children_ids_.resize(batch_size_*max_seq_length_); 
+    __forward_parents_ids_.resize(batch_size_*max_seq_length_);
+    __forward_children_ids_.resize(batch_size_*max_seq_length_);
     sample_offset_in_gid_.resize(batch_size_);
     //activated_times_.resize(batch_size_*max_seq_length_, 0);
     checkCudaError(cudaMalloc((void**)&gpu_idx_buf_, batch_size_*max_seq_length_*sizeof(int)));
   }else {
-    CHECK(batch_size_ == graph_struct.dims(0)); 
-    CHECK(max_seq_length_ == graph_struct.dims(1)); 
+    CHECK(batch_size_ == graph_struct.dims(0));
+    CHECK(max_seq_length_ == graph_struct.dims(1));
     for (int i = 0; i < batch_size_*max_seq_length_; i++) {
       __forward_parents_ids_[i].clear();
       __forward_children_ids_[i].clear();
@@ -67,6 +73,11 @@ int GraphSchedulerBase::LoadGraph(const Tensor& graph_struct) {
   tids_to_jobids_.resize(total_length_, 0);
   jobids_to_tids_.resize(total_length_, 0);
   VLOG(V_DEBUG) << "Loading graph completed...";
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("DynamicBatchingTime");
+#endif
+
   return total_length_;
 }
 
@@ -81,6 +92,9 @@ int GraphSchedulerBase::ReverseGraph() {
 }
 
 void SerialGraphScheduler::Initialize() {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("DynamicBatchingTime");
+#endif
   ++rc_;
   CHECK(Terminate());
   std::fill(activated_times_.begin(), activated_times_.end(), 0);
@@ -105,6 +119,9 @@ void SerialGraphScheduler::Initialize() {
     }
     if (!HasChild(gid)) tids_for_gather_init_[1] = {gid};
   }
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("DynamicBatchingTime");
+#endif
 }
 
 void SerialGraphScheduler::InitializeSample(int sid) {
@@ -123,6 +140,9 @@ void SerialGraphScheduler::InitializeSample(int sid) {
 }
 
 void SerialGraphScheduler::ActivateNext() {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("DynamicBatchingTime");
+#endif
   ++rc_;
   int gid = pending_list_.front();
   if (!(*parents_)[gid].empty()) {
@@ -164,9 +184,16 @@ void SerialGraphScheduler::ActivateNext() {
     }
     if (!HasChild(next_gid)) tids_for_gather_init_[1] = {next_gid};
   }
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("DynamicBatchingTime");
+#endif
 }
 
 void BatchGraphScheduler::Initialize() {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("DynamicBatchingTime");
+#endif
+
   ++rc_;
   CHECK(Terminate());
   std::fill(activated_times_.begin(), activated_times_.end(), 0);
@@ -197,9 +224,17 @@ void BatchGraphScheduler::Initialize() {
     tids_for_scatter_ = std::move(gather_tracer_[rc_()]);
     VLOG(V_DEBUG) << "ready_to_execute_ids_" << ready_to_execute_ids_[0];
   }
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("DynamicBatchingTime");
+#endif
 }
 
 void BatchGraphScheduler::ActivateNext() {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("DynamicBatchingTime");
+#endif
+
   if (round2offset_.size() <= (++rc_)())
     round2offset_.push_back(round2offset_.back() + GetJobId().size());
 
@@ -255,6 +290,10 @@ void BatchGraphScheduler::ActivateNext() {
       for (auto& ctids : tids_for_scatter_) { ctids.clear(); }
     }
   }
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("DynamicBatchingTime");
+#endif
 }
 
 } //namespace midend

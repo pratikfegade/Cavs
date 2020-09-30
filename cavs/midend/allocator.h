@@ -4,6 +4,7 @@
 #include "cavs/proto/devices.pb.h"
 #include "cavs/proto/op_def.pb.h"
 #include "cavs/util/macros.h"
+#include "cortex_defs.h"
 
 #include <string>
 #include <unordered_map>
@@ -11,8 +12,6 @@
 #include <atomic>
 
 namespace midend {
-
-  // #define CORTEX_MEM_PROF
 
 class Allocator {
 public:

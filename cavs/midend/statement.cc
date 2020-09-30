@@ -21,12 +21,12 @@ void ExprStatement::Run() {
   ctxt_->SetTensorOffset();
   //for dynamic tensor size support(the tensor size may vary during iterations)
   //input tensor should also be scaled in the case of the backwarding of skewed tree
-  //when the forward data is reused, it's 1st dimension is the last round dim, 
+  //when the forward data is reused, it's 1st dimension is the last round dim,
   //which should be changed from round to round
   VLOG(V_TIMING) << "Setting Input/Output Tenesor Scale----";
   ctxt_->ScaleInputTensor();
   ctxt_->ScaleOutputTensor();
-  //for some gradient tensor, the original value must be set to 0 
+  //for some gradient tensor, the original value must be set to 0
   VLOG(V_TIMING) << "Setting Zero--------------------------";
   ctxt_->SetZero();
   VLOG(V_TIMING) << "Waiting for inputs--------------------";
@@ -50,7 +50,7 @@ void GraphStatement::Run() {
 
   //checkCudaError(cudaDeviceSynchronize());
   //LOG(INFO) << "Loading graph...";
-  Timing::TimingBegin("GraphParsing");
+  // Timing::TimingBegin("GraphParsing");
   int output_length = gscheduler_->LoadGraph(global_ctxt_->Input(0));
   //LOG(INFO) << "Load graph done...";
   CHECK(output_length > 0);
@@ -58,14 +58,14 @@ void GraphStatement::Run() {
   //The only case we have to reset the dynamic size is when the previous round sets
   //the dynamic size to a size larger than the gather output capacity,
   //which can not happen
-  //LOG(INFO) << "Initialzing 1st round"; 
+  //LOG(INFO) << "Initialzing 1st round";
   gscheduler_->Initialize();
   //checkCudaError(cudaDeviceSynchronize());
   //LOG(INFO) << "Initialzing 1st round done";
-  Timing::TimingEnd("GraphParsing");
+  // Timing::TimingEnd("GraphParsing");
   int round = 0;
 
-  Timing::TimingBegin("RNNForward");
+  // Timing::TimingBegin("RNNForward");
   while (!gscheduler_->Terminate()) {
     //LOG(INFO) << "doing job_id: " << gscheduler_->GetJobId()[0];
     VLOG(V_DEBUG) << "round: " << round++
@@ -81,7 +81,7 @@ void GraphStatement::Run() {
   if (pop_ret_stmt_)
     pop_ret_stmt_->Run();
   VLOG(V_DEBUG) << "GraphOutput done";
-  Timing::TimingEnd("RNNForward");
+  // Timing::TimingEnd("RNNForward");
 }
 
 void GraphGradStatement::Run() {

@@ -3,6 +3,8 @@
 #include "cavs/frontend/cxx/session.h"
 #include "cavs/proto/opt.pb.h"
 #include "cavs/midend/allocator.h"
+#include "cavs/midend/cortex_defs.h"
+#include "cavs/util/timing.h"
 
 #include <chrono>
 #include <iostream>
@@ -121,6 +123,7 @@ void report_time(float all_time_us, int num_nodes, int num_batches, long model_s
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
   float model_size_in_kbytes = model_size_in_bytes / 1024.0;
   std::cout << "MEM," << (midend::get_max_mem_usage() - model_size_in_kbytes)<< std::endl;
-  std::cout << "M_EM," << (midend::get_max_mem_usage() - model_size_in_kbytes) << " " <<
-    midend::get_max_mem_usage() << " " << model_size_in_kbytes << std::endl;
+#ifdef CORTEX_TIME_PROFILE
+  std::cout << "PROF_TIME," << Timing::TimeInMs("DynamicBatchingTime") << std::endl;
+#endif
 }
