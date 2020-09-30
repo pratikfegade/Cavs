@@ -126,6 +126,7 @@ void report_time(float all_time_us, int num_nodes, int num_batches, long model_s
   std::cout << "MEM," << (midend::get_max_mem_usage() - model_size_in_kbytes)<< std::endl;
 #endif
 #ifdef CORTEX_TIME_PROFILE
-  std::cout << "PROF_TIME," << Timing::TimeInMs("DynamicBatchingTime") << std::endl;
+  std::cout << "PROF_TIME1," << Timing::TimeInMs("DynamicBatchingTime") << std::endl;
+  std::cout << "PROF_TIME2," << Timing::TimeInMs("MemoryMgmtTime") << std::endl;
 #endif
 }

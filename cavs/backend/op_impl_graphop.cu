@@ -4,6 +4,8 @@
 #include "cavs/midend/tensor.h"
 #include "cavs/util/macros_gpu.h"
 #include "cavs/util/op_util.h"
+#include "cavs/util/timing.h"
+#include "cavs/midend/cortex_defs.h"
 
 #include <iostream>
 #include <string>
@@ -31,6 +33,10 @@ class GraphGatherOp : public OpImpl {
   }
 
   void Compute(OpContext* context) override {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
     //LOG(FATAL) << "Gather Operator needs further runtime support";
     Tensor* out = context->Output(0);
     GraphSchedulerBase* gs = context->graph_scheduler();
@@ -72,6 +78,11 @@ class GraphGatherOp : public OpImpl {
       /*int threadsPerBlock = stride;*/
       const int MAX_THREADS_IN_BLOCK = 1 << 10;
       int threadsPerBlock = (MAX_THREADS_IN_BLOCK > stride)? stride : MAX_THREADS_IN_BLOCK;
+
+#ifdef CORTEX_TIME_PROFILE
+      Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
       BatchedDynamicSelectedInputSliceCopyKernel<T><<<blocksPerGrid, threadsPerBlock, 0, stream_>>>(
               out->mutable_data<T>(), stride, inp.data<T>(), stride, gs->gpu_idx_buf(), stride);
     }else {
@@ -81,6 +92,11 @@ class GraphGatherOp : public OpImpl {
                      blocksPerGrid*sizeof(int), cudaMemcpyHostToDevice, stream_));
       const int MAX_THREADS_IN_BLOCK = 1 << 10;
       int threadsPerBlock = (MAX_THREADS_IN_BLOCK > stride)? stride : MAX_THREADS_IN_BLOCK;
+
+#ifdef CORTEX_TIME_PROFILE
+      Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
       BatchedDynamicSelectedAssignZeroKernel<T><<<blocksPerGrid, threadsPerBlock, 0, stream_>>>(
               out->mutable_data<T>(), stride, gs->gpu_idx_buf(), stride);
     }
@@ -123,6 +139,10 @@ class GraphScatterOp : public OpImpl {
   }
 
   void Compute(OpContext* context) override {
+#ifdef CORTEX_TIME_PROFILE
+      Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
     //LOG(FATAL) << "Scatter Operator needs further runtime support";
     const Tensor& inp = context->Input(0);
     Tensor* out = context->Output(0);
@@ -169,8 +189,17 @@ class GraphScatterOp : public OpImpl {
       /*int threadsPerBlock = stride;*/
       const int MAX_THREADS_IN_BLOCK = 1 << 10;
       int threadsPerBlock = (MAX_THREADS_IN_BLOCK > stride)? stride : MAX_THREADS_IN_BLOCK;
+
+#ifdef CORTEX_TIME_PROFILE
+      Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
       BatchedDynamicSelectedOutputSliceCopyKernel<T><<<blocksPerGrid, threadsPerBlock, 0, stream_>>>(
               out->mutable_data<T>(), stride, gs->gpu_idx_buf(), inp.data<T>(), stride, stride);
+    } else {
+#ifdef CORTEX_TIME_PROFILE
+      Timing::TimingEnd("MemoryMgmtTime");
+#endif
     }
 
     checkCudaError(cudaGetLastError());
