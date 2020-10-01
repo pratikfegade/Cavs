@@ -13,7 +13,7 @@ using namespace std;
 
 DEFINE_bool(mem, false, "Mem profiling");
 DEFINE_int32(batch_size, 1, "batch");
-DEFINE_int32(max_num_nodes, 5000, "input size");
+DEFINE_int32(vocab_size, 20000, "input size");
 DEFINE_int32(hidden_size, 256, "hidden size");
 DEFINE_int32(max_batches, 1, "iterations");
 DEFINE_double(init_scale, 0.1f, "init random scale of variables");
@@ -27,9 +27,11 @@ class TreeModel : public GraphSupport {
  public:
   TreeModel(const Sym& graph_ph, const Sym& vertex_ph) :
     GraphSupport(graph_ph, vertex_ph) {
-    embedding = Sym::Variable(DT_FLOAT, {FLAGS_max_num_nodes, 4 * FLAGS_hidden_size},
+    embedding = Sym::Variable(DT_FLOAT, {FLAGS_vocab_size, FLAGS_hidden_size},
                             Sym::Uniform(-FLAGS_init_scale, FLAGS_init_scale));
 
+    W = Sym::Variable(DT_FLOAT, {4 * FLAGS_hidden_size * FLAGS_hidden_size},
+                            Sym::Uniform(-FLAGS_init_scale, FLAGS_init_scale));
     U = Sym::Variable(DT_FLOAT, {4 * FLAGS_hidden_size * FLAGS_hidden_size},
                             Sym::Uniform(-FLAGS_init_scale, FLAGS_init_scale));
     B = Sym::Variable(DT_FLOAT, {4 * FLAGS_hidden_size}, Sym::Zeros());
@@ -56,9 +58,13 @@ class TreeModel : public GraphSupport {
 
     // Pull the input word
     Sym x = Pull(0, {1});
-    Sym xW_i, xW_o, xW_u, xW_f;
-    Sym xW = x.EmbeddingLookup(embedding.Mirror());
+    x = x.EmbeddingLookup(embedding.Mirror());
 
+    // layout: i, o, u, f
+    // start computation
+    // xW is 1 x 4*FLAGS_hidden_size
+    Sym xW = Sym::MatMul(x, W.Reshape({FLAGS_hidden_size, 4 * FLAGS_hidden_size}).Mirror()).Reshape({FLAGS_hidden_size * 4});
+    Sym xW_i, xW_o, xW_u, xW_f;
     tie(xW_i, xW_o, xW_u, xW_f) = xW.Split4();
 
     // hU_iou is 1 x 3*FLAGS_hidden_size
@@ -86,7 +92,7 @@ class TreeModel : public GraphSupport {
   }
 
  private:
-  Sym U, B;
+  Sym W, U, B;
   Sym embedding;
   Sym b_i;
   Sym b_f;
@@ -105,6 +111,9 @@ int main(int argc, char* argv[]) {
   Sym graph    = Sym::Placeholder(DT_FLOAT, {FLAGS_batch_size, SST_MAX_DEPENDENCY}, "CPU");
   Sym word_idx = Sym::Placeholder(DT_FLOAT, {FLAGS_batch_size, SST_MAX_DEPENDENCY});
 
+  Sym weight   = Sym::Variable(DT_FLOAT, {FLAGS_vocab_size, FLAGS_hidden_size},
+                               Sym::Uniform(-FLAGS_init_scale, FLAGS_init_scale));
+  Sym bias     = Sym::Variable(DT_FLOAT, {1, FLAGS_vocab_size}, Sym::Zeros());
   TreeModel model(graph, word_idx);
   Sym graph_output = model.Output();
   Session sess(OPT_BATCHING + OPT_FUSION + OPT_STREAMMING);
@@ -122,11 +131,6 @@ int main(int argc, char* argv[]) {
     int this_num_nodes = 0;
     sst_reader.next_batch(FLAGS_batch_size, &graph_data, &input_data, &this_num_nodes);
     num_nodes += this_num_nodes;
-
-    if (this_num_nodes >= FLAGS_max_num_nodes) {
-      std::cerr << "Too many nodes in one batch." << std::endl;
-      return -1;
-    }
 
     auto runner = [&] {
       // time_point<system_clock> start = system_clock::now();
@@ -146,7 +150,11 @@ int main(int argc, char* argv[]) {
     all_time += measure_time(runner, FLAGS_mem);
   }
 
-  long model_size_in_bytes = -100000000;
+  long model_size_in_bytes = 4 * (FLAGS_vocab_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
+				  4 * FLAGS_hidden_size +
+				  FLAGS_vocab_size * FLAGS_hidden_size);
   report_time(all_time, num_nodes, max_batches, model_size_in_bytes);
 
   return 0;
