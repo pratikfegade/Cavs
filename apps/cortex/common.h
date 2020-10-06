@@ -23,7 +23,11 @@ static bool IsNonEmptyMessage(const char *flagname, const std::string &value) {
 
 // SST
 int SST_MAX_LEN = 56;
+#ifdef CORTEX_TIME_PROFILE
 int SST_MAX_DEPENDENCY = 111;
+#else
+int SST_MAX_DEPENDENCY = 59;
+#endif
 int SST_NUM_SAMPLES = 8544;
 
 class SSTReader {
@@ -123,10 +127,12 @@ void report_time(float all_time_us, int num_nodes, int num_batches, long model_s
   std::cout << "RESULTS," << node_time_us << "," << batch_time_ms << std::endl;
   float model_size_in_kbytes = model_size_in_bytes / 1024.0;
 #ifdef CORTEX_MEM_PROF
-  std::cout << "MEM," << (midend::get_max_mem_usage() - model_size_in_kbytes)<< std::endl;
+  std::cout << "M_EM," << midend::get_max_mem_usage() << " " << model_size_in_kbytes << std::endl;
+  std::cout << "MEM," << (midend::get_max_mem_usage() - model_size_in_kbytes) << std::endl;
 #endif
 #ifdef CORTEX_TIME_PROFILE
-  std::cout << "PROF_TIME1," << Timing::TimeInMs("DynamicBatchingTime") << std::endl;
-  std::cout << "PROF_TIME2," << Timing::TimeInMs("MemoryMgmtTime") << std::endl;
+  std::cout << "DynBatchTime," << Timing::TimeInMs("DynamicBatchingTime") << std::endl;
+  std::cout << "MemMgmtTime," << Timing::TimeInMs("MemoryMgmtTime") << std::endl;
+  std::cout << "ExeCPUTime," << Timing::TimeInMs("ExecutionCPUTime") << std::endl;
 #endif
 }

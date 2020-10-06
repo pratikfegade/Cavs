@@ -23,6 +23,7 @@ class GPUAllocator : public Allocator {
 	Allocator::max_mem_usage.exchange(Allocator::current_mem_usage);
       Allocator::buf_size_map[ptr] = nbytes;
       // std::cout << "[GALLOC] " << nbytes << " " << Allocator::current_mem_usage << " " << Allocator::max_mem_usage << std::endl;
+      // if (nbytes == 786432) raise(SIGSEGV);
    }
 #endif
     return ptr;

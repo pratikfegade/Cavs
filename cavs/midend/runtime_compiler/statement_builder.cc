@@ -21,7 +21,7 @@ AssignStatementBuilder& AssignStatementBuilder::SetNode(Node* node) {
   static vector<string> ref_ops =
     {"Assign", "Mirror", "Accumulate"};
   static vector<string> self_defined_ops =
-    {"Sigmoid", "Tanh_grad", "Sigmoid_grad"};
+    {"Sigmoid", "Tanh_grad", "Sigmoid_grad", "Relu"};
   string right_hand;
   CHECK(node->IsSingleNode());
   CHECK(!ae_);
@@ -47,7 +47,7 @@ AssignStatementBuilder& AssignStatementBuilder::SetNode(Node* node) {
         dynamic_cast<SingleNode*>(node)->dtype()).toCode();
     if (node->name() == "Accumulate") {
       ae_ = new AssignAddExpression(
-          CodeGenerator::PrefixedVar(node->output(0)->name()), 
+          CodeGenerator::PrefixedVar(node->output(0)->name()),
           right_hand, dynamic_cast<SingleNode*>(node)->dtype());
       return *this;
     }
@@ -57,6 +57,12 @@ AssignStatementBuilder& AssignStatementBuilder::SetNode(Node* node) {
       CHECK(node->input_size() == 1);
       CHECK(node->output_size() == 1);
       right_hand = SigmoidExpression(
+          CodeGenerator::PrefixedVar(node->input(0)->name()),
+          dynamic_cast<SingleNode*>(node)->dtype()).toCode();
+    }else if (node->name() == "Relu") {
+      CHECK(node->input_size() == 1);
+      CHECK(node->output_size() == 1);
+      right_hand = ReluExpression(
           CodeGenerator::PrefixedVar(node->input(0)->name()),
           dynamic_cast<SingleNode*>(node)->dtype()).toCode();
     }else if (node->name() == "Tanh_grad") {
@@ -80,17 +86,17 @@ AssignStatementBuilder& AssignStatementBuilder::SetNode(Node* node) {
     LOG(FATAL) << "Wrong node";
   }
   ae_ = new AssignExpression(
-      CodeGenerator::PrefixedVar(node->output(0)->name()), 
+      CodeGenerator::PrefixedVar(node->output(0)->name()),
       right_hand, dynamic_cast<SingleNode*>(node)->dtype());
   return *this;
 }
 
 string AssignStatementBuilder::toCode() const {
-  return AssignStatement(ae_).toCode(); 
+  return AssignStatement(ae_).toCode();
 }
 
 string VarDeclStatementBuilder::toCode() const {
-  return VarDeclStatement(ae_).toCode(); 
+  return VarDeclStatement(ae_).toCode();
 }
 
 } //namespace RTC

@@ -68,7 +68,8 @@ int main(int argc, char* argv[]) {
   TreeFCModel model(graph, vertex);
   Sym graph_output = model.Output();
 
-  Session sess(OPT_BATCHING + OPT_FUSION);
+  // Session sess(OPT_BATCHING + OPT_FUSION);
+  Session sess(OPT_BATCHING);
   vector<int> graph_data(FLAGS_batch_size*(2*(1 << FLAGS_height)-1), -1);
 
   float all_time = 0.0;

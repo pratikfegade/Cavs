@@ -111,9 +111,6 @@ int main(int argc, char* argv[]) {
   Sym graph    = Sym::Placeholder(DT_FLOAT, {FLAGS_batch_size, SST_MAX_DEPENDENCY}, "CPU");
   Sym word_idx = Sym::Placeholder(DT_FLOAT, {FLAGS_batch_size, SST_MAX_DEPENDENCY});
 
-  Sym weight   = Sym::Variable(DT_FLOAT, {FLAGS_vocab_size, FLAGS_hidden_size},
-                               Sym::Uniform(-FLAGS_init_scale, FLAGS_init_scale));
-  Sym bias     = Sym::Variable(DT_FLOAT, {1, FLAGS_vocab_size}, Sym::Zeros());
   TreeModel model(graph, word_idx);
   Sym graph_output = model.Output();
   Session sess(OPT_BATCHING + OPT_FUSION + OPT_STREAMMING);
@@ -153,8 +150,7 @@ int main(int argc, char* argv[]) {
   long model_size_in_bytes = 4 * (FLAGS_vocab_size * FLAGS_hidden_size +
 				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
 				  4 * FLAGS_hidden_size * FLAGS_hidden_size +
-				  4 * FLAGS_hidden_size +
-				  FLAGS_vocab_size * FLAGS_hidden_size);
+				  4 * FLAGS_hidden_size);
   report_time(all_time, num_nodes, max_batches, model_size_in_bytes);
 
   return 0;

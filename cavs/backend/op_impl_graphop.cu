@@ -217,7 +217,11 @@ class GraphPushOp : public OpImpl {
   explicit GraphPushOp(const OpDef& def) :
     OpImpl(def), stream_(cudaStreamDefault) {}
   void Compute(OpContext* context) override {
-    //LOG(FATAL) << "Push Operator needs further runtime support";
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
+   //LOG(FATAL) << "Push Operator needs further runtime support";
     GraphSchedulerBase* gs = context->graph_scheduler();
     CHECK_NOTNULL(gs);
     const Tensor& inp = context->Input(0);
@@ -235,16 +239,31 @@ class GraphPushOp : public OpImpl {
       stream_ = StreamEventHandlePool::GetCudaStream(context->GetStreamID());
       VLOG(V_DEBUG) << "[Unary] Assign new stream with ID " << context->GetStreamID();
     }
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
     /*LOG(FATAL) << context->GetStreamID();*/
     checkCudaError(cudaMemcpyAsync(out_ptr, inp.data<T>(),
                                    inp.count()*sizeof(T),
                                    cudaMemcpyDeviceToDevice, stream_));
     /*ContinuousMemcpyKernel<<<BLOCKS_PER_GRID(inp.count()), THREADS_PER_BLOCK, 0, stream_>>>(*/
         /*out_ptr, inp.data<T>(), inp.count());*/
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
     gs->SetFuncRet(*out);
 
     inp.DebugNumerical<T>();
     out->DebugNumerical<T>();
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
   }
 
  private:
@@ -258,6 +277,10 @@ class GraphPullOp : public OpImpl {
     OpImpl(def), stream_(cudaStreamDefault)  {}
 
   void Compute(OpContext* context) override {
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
     //LOG(FATAL) << "Pull Operator needs further runtime support";
     GraphSchedulerBase* gs = context->graph_scheduler();
     CHECK_NOTNULL(gs);
@@ -306,10 +329,21 @@ class GraphPullOp : public OpImpl {
     /*int threadsPerBlock = stride;*/
     const int MAX_THREADS_IN_BLOCK = 1 << 10;
     int threadsPerBlock = (MAX_THREADS_IN_BLOCK > stride)? stride : MAX_THREADS_IN_BLOCK;
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
+
     checkCudaError(cudaGetLastError());
     BatchedDynamicSelectedInputSliceCopyKernel<T><<<blocksPerGrid, threadsPerBlock, 0, stream_>>>(
             out->mutable_data<T>(), stride, inp.data<T>(), stride, gs->gpu_idx_buf(), stride);
     checkCudaError(cudaGetLastError());
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("MemoryMgmtTime");
+#endif
+
 
     // {
     //   vector<float> res(inp.count());
@@ -328,6 +362,11 @@ class GraphPullOp : public OpImpl {
 
     inp.DebugNumerical<T>();
     out->DebugNumerical<T>();
+
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("MemoryMgmtTime");
+#endif
+
   }
 
  private:

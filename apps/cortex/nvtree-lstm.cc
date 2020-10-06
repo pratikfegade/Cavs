@@ -107,7 +107,13 @@ int main(int argc, char* argv[]) {
 
   TreeModel model(graph, word_idx);
   Sym graph_output = model.Output();
+#ifdef CORTEX_TIME_PROFILE
+  // Switch off streaming for profiling as we anyway serialize kernel
+  // execution when profiling
+  Session sess(OPT_BATCHING + OPT_FUSION);
+#else
   Session sess(OPT_BATCHING + OPT_FUSION + OPT_STREAMMING);
+#endif
   int max_batches = FLAGS_max_batches;
   vector<float> input_data(FLAGS_batch_size*SST_MAX_DEPENDENCY, -1);
   vector<int>   graph_data(FLAGS_batch_size*SST_MAX_DEPENDENCY, -1);

@@ -1,5 +1,6 @@
 #include "cavs/midend/statement.h"
 #include "cavs/util/timing.h"
+#include "cortex_defs.h"
 
 namespace midend {
 
@@ -32,7 +33,13 @@ void ExprStatement::Run() {
   VLOG(V_TIMING) << "Waiting for inputs--------------------";
   ctxt_->WaitForEvent();
   VLOG(V_TIMING) << "Computing-----------------------------";
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingBegin("ExecutionCPUTime");
+#endif
   op_->Compute(ctxt_);
+#ifdef CORTEX_TIME_PROFILE
+  Timing::TimingEnd("ExecutionCPUTime");
+#endif
 
   VLOG(V_TIMING) << "Recording My Event if necessary-------";
   ctxt_->RecordMyEvent();
@@ -44,6 +51,10 @@ void GraphStatement::Run() {
   FunctionCallStatement::Run();
   CHECK(node_func_);
   CHECK(gscheduler_);
+
+// #ifdef CORTEX_MEM_PROF
+  // midend::set_mem_prof(true);
+// #endif
 
   if (push_arg_stmt_)
     push_arg_stmt_->Run();
@@ -82,6 +93,11 @@ void GraphStatement::Run() {
     pop_ret_stmt_->Run();
   VLOG(V_DEBUG) << "GraphOutput done";
   // Timing::TimingEnd("RNNForward");
+
+// #ifdef CORTEX_MEM_PROF
+  // midend::set_mem_prof(false);
+// #endif
+
 }
 
 void GraphGradStatement::Run() {

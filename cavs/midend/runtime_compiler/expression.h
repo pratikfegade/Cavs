@@ -46,6 +46,15 @@ class SigmoidExpression : public VarRefExpression {
   }
 };
 
+class ReluExpression : public VarRefExpression {
+ public:
+  ReluExpression(std::string operand, DataType t)
+    : VarRefExpression(operand, t) {}
+  inline std::string toCode() const override {
+    return "fmaxf(0.f, " + operand_ + ")";
+  }
+};
+
 class TanhGradExpression : public Expression {
  public:
   TanhGradExpression(std::string loperand, std::string roperand, DataType t)

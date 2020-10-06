@@ -19,7 +19,7 @@ namespace RTC {
 
 bool isElementwise(const string& op) {
   static vector<string> elementwise_ops =
-    {"Add", "Minus", "Mul", "Tanh", "Mirror", "Sigmoid",
+    {"Add", "Minus", "Mul", "Tanh", "Mirror", "Sigmoid", "Relu",
      "Assign", "Tanh_grad", "Sigmoid_grad", "Accumulate"};
   return (std::find(elementwise_ops.begin(), elementwise_ops.end(), op)
         != elementwise_ops.end());
@@ -28,7 +28,7 @@ bool isElementwise(const string& op) {
 bool isDeserved(const string& op) {
   static vector<string> elementwise_ops =
     {"Add", "Minus", "Mul", "Tanh", "Sigmoid",
-     "Tanh_grad", "Sigmoid_grad", "Accumulate"};
+     "Tanh_grad", "Sigmoid_grad", "Accumulate", "Relu"};
   return (std::find(elementwise_ops.begin(), elementwise_ops.end(), op)
         != elementwise_ops.end());
 }
@@ -52,7 +52,7 @@ Parser::Parser(list<Node*>* n)
   auto iter = nodes_->begin();
   VLOG(V_DEBUG) << "Number of nodes: " << nodes_->size();
   for (int i = 0; i < nodes_->size(); i++, iter++) {
-    //group_[i] = i; 
+    //group_[i] = i;
     CHECK(node2idx_.find(*iter) == node2idx_.end());
     node2idx_[*iter] = i;
     if ((*iter)->IsSingleNode()) {
@@ -129,7 +129,7 @@ int Parser::GenerateGroup() {
     for (int id : iter.second)
       VLOG(V_DEBUG) << "GroupContent:\t" << id;
     if (fusion_benefit[iter.first] > 1) {
-      group_contents_.push_back(std::move(iter.second)); 
+      group_contents_.push_back(std::move(iter.second));
       CHECK(bottom_line[iter.first] < top_line[iter.first]);
       group_insert_pos_.push_back(bottom_line[iter.first]);
     }
@@ -150,19 +150,19 @@ void Parser::FuseGroup(int gid, list<Node*>* nodes, list<Edge*>* in_edge, list<E
     auto iter = std::next(nodes_->begin(), id);
     for (Edge* ie : (*iter)->input()) {
       if (out_edge_times.find(ie) != out_edge_times.end()) {
-        out_edge_times[ie]--; 
+        out_edge_times[ie]--;
         CHECK(out_edge_times[ie] >= 0);
         if (out_edge_times[ie] == 0) {
-          out_edge_times.erase(ie); 
+          out_edge_times.erase(ie);
         }
       }else if (std::find(in_edge->begin(), in_edge->end(), ie) == in_edge->end()){
-        in_edge->push_back(ie); 
+        in_edge->push_back(ie);
       }
     }
     for (Edge* oe : (*iter)->output()) {
       //loose this constraint because of accumulate operator
       //CHECK(out_edge_times.find(oe) == out_edge_times.end());
-      out_edge_times[oe] = oe->dst_size(); 
+      out_edge_times[oe] = oe->dst_size();
     }
     nodes->push_back(*std::next(nodes_->begin(), id));
     auto ret = remove_nodes_.insert(*iter);
@@ -213,7 +213,7 @@ void Parser::Finalize() {
   //auto iter = nodes_->begin();
   //for (int i = 0; i < nodes_->size(); i++, iter++) {
     //CHECK(new_node2idx.find(*iter) == new_node2idx.end());
-    //new_node2idx[*iter] = i; 
+    //new_node2idx[*iter] = i;
   //}
 
   //iter = nodes_->begin();
@@ -224,7 +224,7 @@ void Parser::Finalize() {
         //if (edge->scope() == (*iter)->scope()) {
           //for (Node* pnode : edge->dst(true)) {
             //if (new_node2idx.find(pnode) == new_node2idx.end()) {
-              ////its parent is fused nodes 
+              ////its parent is fused nodes
               ////CHECK(node2idx_.find(pnode) != node2idx_.end());
               ////we loose this constraint because batchweightupdater may remove some nodes in this scope
               //if (node2idx_.find(pnode) == node2idx_.end()) continue;
